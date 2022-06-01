@@ -1,8 +1,24 @@
 import { useState } from "react";
-import { Typography, Button, Container, TextField } from "@mui/material";
+import {
+  Typography,
+  Container,
+  TextField,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+} from "@mui/material";
+import { LoadingButton } from "@mui/lab";
+
 import KeyboardArrowRightOutlinedIcon from "@mui/icons-material/KeyboardArrowRightOutlined";
+import { useFirestore } from "../hooks/useFirestore";
+
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function Create() {
+  const navigate = useNavigate();
   const styles = {
     btn: {
       fontSize: "60px",
@@ -21,12 +37,41 @@ export default function Create() {
 
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
+  const [titleError, setTitleError] = useState(false);
+  const [detailsError, setDetailsError] = useState(false);
+  const [category, setCategory] = useState("todos");
+
+  const { addDocument: addNote, response } = useFirestore("notes");
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    setTitleError(false);
+    setDetailsError(false);
+
+    if (title === "") setTitleError(true);
+    if (details === "") setDetailsError(true);
+
     if (title && details) {
-      console.log(title, details);
+      addNote({
+        title,
+        details,
+        category,
+      });
+
+      if (response.error) {
+        return toast.error("Something went wrong", {
+          icon: "😦",
+        });
+      }
+
+      toast.success("Your note was added", {
+        icon: "🚀",
+      });
+
+      navigate("/");
+      setTitle("");
+      setDetails("");
     }
   };
 
@@ -51,6 +96,7 @@ export default function Create() {
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          error={titleError}
         />
 
         <TextField
@@ -65,17 +111,36 @@ export default function Create() {
           required
           value={details}
           onChange={(e) => setDetails(e.target.value)}
+          error={detailsError}
         />
 
-        <Button
+        <FormControl>
+          <FormLabel>Note Category</FormLabel>
+          <RadioGroup
+            onChange={(e) => setCategory(e.target.value)}
+            value={category}
+          >
+            <FormControlLabel control={<Radio />} value="todos" label="Todos" />
+            <FormControlLabel control={<Radio />} value="money" label="Money" />
+            <FormControlLabel
+              control={<Radio />}
+              value="reminders"
+              label="Reminders"
+            />
+            <FormControlLabel control={<Radio />} value="Work" label="Work" />
+          </RadioGroup>
+        </FormControl>
+
+        <LoadingButton
           // sx={styles.btn}
           type="submit"
           color="secondary"
           variant="contained"
           endIcon={<KeyboardArrowRightOutlinedIcon />}
+          loading={response.isPending}
         >
           Submit
-        </Button>
+        </LoadingButton>
       </form>
     </Container>
   );
